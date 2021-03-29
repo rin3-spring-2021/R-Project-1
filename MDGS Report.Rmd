@@ -1,0 +1,38 @@
+---
+title: "MDGS 2021 Report (working analysis document)"
+output: bookdown::html_document2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, include = TRUE)
+```
+
+```{r packages, include = FALSE}
+library(readr)
+library(tidyverse)
+library(skimr)
+library(knitr)
+library(janitor)
+
+# Started with these on 1/21/2021; will add more as needed for analysis
+```
+
+# Introduction
+
+## Context
+
+The Maryland Green Schools Program (MDGS) is a sustainable schools certification program, and the signature program of the Maryland Association for Environmental and Outdoor Education (MAEOE). The MDGS program provides infrastructure, support, and a rigorous review process to certify any school in Maryland with sustainable school certification as a Maryland Green School. The MDGS program has been essential to Maryland's ability to connect with goals of the Chesapeake Bay Watershed Agreement, as well as helping schools achieve Maryland's educational standards and graduation requirements for environmental literacy. Currently, nearly 30% of all Maryland schools (public and private) are certified Green Schools. In 2020, MAEOE received state funding to expand their efforts, with a goal of having 50% of all schools in the state certified by 2026.
+
+This report presents results of evaluation of MAEOE's progress toward this goal, beginning with a quantitative baseline assessment of progress and status of the expansion efforts in the 2020-21 school year.
+
+## Evaluation Questions
+
+This report is guided by three overarching evaluation questions
+
+1.  What is the current progress toward the 2026 goal?
+2.  How well distributed are MDGS geographically and demographically (at the school level)? Are there any patterns around which schools get certified based on school-level characteristics?
+3.  What is the collective impact of MDGS?
+
+# Baseline Analysis
+
+The first stage of analysis was to gather, wrangle, and descriptively analyze the baseline data about all schools in the state of Maryland -- public and private. This is the full population of *potential* Green Schools, to which we will comparatively analyze the current certified Green Schools.
