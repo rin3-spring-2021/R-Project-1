@@ -182,6 +182,9 @@ pre code {
 <div id="data-loading" class="section level2" number="2.1">
 <h2><span class="header-section-number">2.1</span> Data Loading</h2>
 <p>The first data we dealt with was the data from NCES about all schools in the state of Maryland - public and private. Data about public and private schools are collected separately, so there were two files that needed to be loaded, cleaned, and merged.</p>
+<blockquote>
+<p><strong>Code Problem:</strong> I’m still having difficulty getting weird characters from the original data set in R. I tried getting them out with the code Charlie suggested (ifelse – see below). But it doesn’t seem to work. Other ideas?</p>
+</blockquote>
 </div>
 <div id="data-cleaning" class="section level2" number="2.2">
 <h2><span class="header-section-number">2.2</span> Data Cleaning</h2>
@@ -215,9 +218,6 @@ pre code {
 <li>Private schools report racial/ethnicity data of student body. From this, we compute a Percentage of Non-White Students as an aggregated measure.</li>
 </ul>
 <p><em>Note: This is the only metric of “diversity” in the private school data. It’s not remotely equivalent to Title I or FARM, but it is the metric available.</em></p>
-<blockquote>
-<p><strong>Code Problem:</strong> I can’t get rid of weird characters from the original data set in R. (I could manually get rid of them in Excel, but something isn’t working to get rid of ?symbols in the source file in R. Help!!</p>
-</blockquote>
 </div>
 <div id="preparing-merging-into-all-schools-data-file" class="section level3" number="2.2.3">
 <h3><span class="header-section-number">2.2.3</span> Preparing &amp; Merging into All Schools Data File</h3>
@@ -346,7 +346,7 @@ pre code {
 <div id="by-locale-type" class="section level4" number="2.3.1.3">
 <h4><span class="header-section-number">2.3.1.3</span> By Locale Type</h4>
 <blockquote>
-<p>Code Note: Still working on how to update the data file with the definitions of the Locale Codes.</p>
+<p><strong>Code Note</strong>: Still not sure how to update the data file with the definitions of the Locale Codes.</p>
 <p>We have a table with the meaning of each Locale Code, but not sure how to use R to transform the code into the words.</p>
 </blockquote>
 <pre><code>##  locale_code   n    percent
@@ -376,7 +376,7 @@ pre code {
 <div id="by-grade-band" class="section level4" number="2.3.1.4">
 <h4><span class="header-section-number">2.3.1.4</span> By Grade Band</h4>
 <blockquote>
-<p>Note: I don’t know how to order tables with text-based options to put them in the proper sequence (not alpha).</p>
+<p><strong>Code Note</strong>: I don’t know how to order tables with text-based options to put them in the proper sequence (not alpha).</p>
 </blockquote>
 <pre><code>##  grade_band   n    percent
 ##  All Grades 172 0.08678103
