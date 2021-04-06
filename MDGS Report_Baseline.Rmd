@@ -1,0 +1,215 @@
+---
+title: "MDGS 2021: Baseline Summary Report"
+output: bookdown::html_document2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, include = TRUE)
+```
+
+```{r packages, include = FALSE}
+library(readr)
+library(tidyverse)
+library(skimr)
+library(knitr)
+library(janitor)
+library(flextable)
+library(ggplot2)
+
+```
+
+```{r import data, include = FALSE}
+
+# Import the cleaned data from data folder.
+# These files were cleaned via the code in the MDGS_Analysis_Info RMD doc
+
+# All Schools and Public Schools still need to be filtered
+# Remove any schools (~7 in this set) that were coded as "Closed"
+
+all_schools = read_csv("data/all_schools_cleaned.csv") %>% 
+  filter(school_status != "Closed")
+
+```
+
+# Introduction
+
+## Context
+
+The Maryland Green Schools Program (MDGS) is a sustainable schools certification program, and the signature program of the Maryland Association for Environmental and Outdoor Education (MAEOE). The MDGS program provides infrastructure, support, and a rigorous review process to certify any school in Maryland with sustainable school certification as a Maryland Green School.
+
+The MDGS program has been essential to Maryland's ability to connect with goals of the Chesapeake Bay Watershed Agreement, as well as helping schools achieve Maryland's educational standards and graduation requirements for environmental literacy. Currently, nearly 30% of all Maryland schools (public and private) are certified Green Schools. In 2020, MAEOE received state funding to expand their efforts, with a goal of having 50% of all schools in the state certified by 2026.
+
+To support ongoing strategic efforts to expand MDGS, it is critical to understand the geographic and demographic reach in relation to the full population of Maryland public and private schools. This analysis will be conducted in Spring 2021 with the latest certification data.
+
+This report presents the data summary after initial data cleaning and analysis of data from the National Center for Educational Statistics (NCES) on the characteristics of schools and students across the full population of schools in Maryland, both public and private.
+
+While the data presented here are not about MDGS specifically, these distributions will be the basis for comparison and analysis of MDGS data later this year to determine areas where the program has higher and lower penetration, and to identify opportunities for expanding the reach and diversity of schools in the state that become certified as Maryland Green Schools
+
+# The Population: All Maryland Schools
+
+The first stage of analysis was to gather, wrangle, and descriptively analyze the baseline data about all schools in the state of Maryland -- public and private. This is the full population of *potential* Green Schools, to which we will comparatively analyze the current certified Green Schools.
+
+## Public & Private
+
+According to NCES data, there are 1,982 schools in Maryland. Of these, 72% of schools are public schools. Within the public schools, about 10% are either magnet or charter schools; 65% of charter schools are in urban areas, while 70% of magnet schools are located in suburban areas.
+
+> **Code Help:** I couldn't figure out how to cleanly get a percentage using the summarize function. (I could do it in tabyl(), but that didn't seem to be the right fit here.
+>
+> Formatting it with the % sign. (Or if that's something you format in the graphic?)
+>
+> Getting the total N to divide the n() count by.
+
+**Distribution of School Types in Maryland (n=1980)**
+
+```{r school types stacked bar chart}
+
+# Create summary table of the data
+
+school_types = all_schools %>% 
+  group_by(school_type) %>% 
+  summarize(Percentage = round((n()/1980)*100,0))
+
+
+### I'd prefer to do this as a stacked bar -- since it's a proportion of 100%
+
+ggplot(data = school_types,
+       mapping = aes(x = school_type,
+                     y = Percentage)) +
+  geom_col() +
+  coord_flip()
+
+### STILL TO LEARNS / TO DOS
+# Naming axis titles (or eliminating)
+# Formatting data labels
+# Adding data values in bars
+# color scheme
+# eliminating background plot
+# Add title / explanation (instead of doing it in text)
+```
+
+**Distribution of Types of Public Schools in Maryland (n=1418)**
+
+```{r public sub-types bar chart}
+
+# Create summary table of the data
+
+public_subtypes = all_schools %>% 
+  filter(school_type == "public") %>% 
+  count(school_type_detail)
+
+
+ggplot(data = public_subtypes,
+       mapping = aes(x = school_type_detail,
+                     y = n)) +
+  geom_col() +
+  coord_flip()
+
+### STILL TO LEARNS / TO DOS
+# Naming axis titles (or eliminating)
+# Formatting data labels
+# Adding data values in bars
+# color scheme
+# eliminating background plot
+
+```
+
+## Schools by Grade Levels
+
+Elementary schools are, by far, the most common type of school in Maryland. Nearly half of all schools in Maryland, across public and private schools, serve only elementary-aged students (K-5 or K-6). Another 14% of schools span a set of elementary and middle school grades.
+
+The remainder of schools are in the higher grade levels -- middle school, high school, or a spanning across all grade bands. Total enrollment ranged from a very small number of students (private schools) to 3,196 students (a suburban magnet high school). Schools for older students tend to serve more students per building.
+
+> **Code Help:** In order to get these to organize by logical grade levels, ES, ES/MS, MS, HS, etc. -- I think I need to get this variable turned into a factor. But I don't know how to do that.
+
+**Distribution of Schools by Grade Level (Public Schools, n=1418)**
+
+```{r grade bands public}
+
+public_grades = all_schools %>% 
+  filter(school_type == "public") %>% 
+  group_by(grade_band) %>% 
+  summarize(Percentage = round((n()/1418)*100,0))
+
+
+ggplot(data = public_grades,
+       mapping = aes(x = grade_band,
+                     y = Percentage)) +
+  geom_col()
+```
+
+**Distribution of Schools by Grade Level (Private Schools, n=562)**\
+
+```{r grade bands private}
+
+pvt_grades = all_schools %>% 
+  filter(school_type == "private") %>% 
+  group_by(grade_band) %>% 
+  summarize(Percentage = round((n()/562)*100,0))
+
+
+ggplot(data = pvt_grades,
+       mapping = aes(x = grade_band,
+                     y = Percentage)) +
+  geom_col()
+```
+
+## Locale Type
+
+**Distribution of Schools by Locale Type (Public Schools) (n=1418)**
+
+```{r locale type public}
+
+# Create summary table of the data
+
+public_locales = all_schools %>% 
+  filter(school_type == "public") %>% 
+  group_by(locale_label) %>% 
+  summarize(Percentage = round((n()/1418)*100,0))
+
+
+ggplot(data = public_locales,
+       mapping = aes(x = locale_label,
+                     y = Percentage)) +
+  geom_col() +
+  coord_flip()
+
+### STILL TO LEARNS / TO DOS
+# Naming axis titles (or eliminating)
+# Formatting data labels
+# Adding data values in bars
+# color scheme
+# eliminating background plot
+
+```
+
+Condensed Version
+
+> **Code Help:** I'd like to condense down these groups to Urban, Suburban, Rural, Town. I'm having a block on making that work in the summary table. I do know locale_label is a factor, if that matters (that's how it imported from the Urban Institute set..
+
+```{r locale type cond public}
+
+# Create summary table of the data
+
+public_locales2 = all_schools %>% 
+  mutate(locale_label_cond = 
+           case_when(locale_label %in% c("City large", "City small") ~ "Urban"
+                     locale_label %in% c("Rural distant", ),
+                     TRUE ~ NA) %>% 
+  filter(school_type == "public") %>% 
+  group_by(locale_label_cond) %>% 
+  summarize(Percentage = round((n()/1418)*100,0))
+
+
+ggplot(data = public_locales,
+       mapping = aes(x = locale_label,
+                     y = Percentage)) +
+  geom_col() +
+  coord_flip()
+
+### STILL TO LEARNS / TO DOS
+# Naming axis titles (or eliminating)
+# Formatting data labels
+# Adding data values in bars
+# color scheme
+# eliminating background plot
+```

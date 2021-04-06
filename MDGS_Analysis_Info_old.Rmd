@@ -1,0 +1,518 @@
+---
+title: 'MDGS 2021: Analysis Documentation'
+output: bookdown::html_document2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r packages, include = FALSE}
+library(readr)
+library(tidyverse)
+library(skimr)
+library(knitr)
+library(janitor)
+
+# Started with these on 1/21/2021; will add more as needed for analysis
+```
+
+# Introduction
+
+## Context
+
+The Maryland Green Schools Program (MDGS) is a sustainable schools certification program, and the signature program of the Maryland Association for Environmental and Outdoor Education (MAEOE). The MDGS program provides infrastructure, support, and a rigorous review process to certify any school in Maryland with sustainable school certification as a Maryland Green School. The MDGS program has been essential to Maryland's ability to connect with goals of the Chesapeake Bay Watershed Agreement, as well as helping schools achieve Maryland's educational standards and graduation requirements for environmental literacy. Currently, nearly 30% of all Maryland schools (public and private) are certified Green Schools. In 2020, MAEOE received state funding to expand their efforts, with a goal of having 50% of all schools in the state certified by 2026.
+
+This document is an internal guide and explanation of the data cleaning and analysis steps undertaken and decisions made as an **internal record and guide for the JSC** team in replicating this work.
+
+# Baseline Analysis
+
+The first stage of analysis was to gather, wrangle, and descriptively analyze the baseline data about all schools in the state of Maryland -- public and private. This is the full population of *potential* Green Schools, to which we will comparatively analyze the current certified Green Schools.
+
+## Data Loading
+
+The first data we dealt with was the data from NCES about all schools in the state of Maryland - public and private. Data about public and private schools are collected separately, so there were two files that needed to be loaded, cleaned, and merged.
+
+> **Code Problem:** I'm still having difficulty getting weird characters from the original data set in R. I tried getting them out with the code Charlie suggested (ifelse -- see below). But it doesn't seem to work. Other ideas?
+
+```{r NCES load data, include = FALSE}
+
+# Loading the NCES data files of all public and private schools in MD
+# This is current, possibly will be updated each year
+
+#### That could raise future cleaning challenges if MD or NCES changes any of the variables.
+
+
+# PUBLIC SCHOOL DATA
+
+# Import data
+# Auto-recode certain characters to NA
+# Clean variable names to lower, snake_case
+## Mercifully, this ALSO removed the random asterisks in variable names.
+
+all_public = read_csv("data/nces_public_md.csv", na = c("–","†","?")) %>% 
+  clean_names()
+
+
+#### Still having a problem converting the "special question marks" to NA
+#### Followed this code and it doesn't change anything.
+
+# There's a problem with special characters coming through
+# Print all strings in column in console with the below fuctions (to find out how the wonky stuff is coming through)
+all_public$title_i_school
+all_public$title_1_school_wide
+all_public$free_lunch
+all_public$reduced_lunch
+
+# Problem data seems to be:
+# "\u0086"
+# "\u0096"
+
+# copy the bad characters and create a vector like this
+na_symbols = c("?", "\u0086", "\u0096")
+
+# use ifelse() to convert these to NA
+# All variables are coming in as characters
+
+all_public = all_public %>%
+  mutate(title_i_school = ifelse(title_i_school %in% na_symbols, NA, title_i_school)) %>% 
+  mutate(title_1_school_wide = ifelse(title_1_school_wide %in% na_symbols, NA, title_1_school_wide)) %>% 
+  mutate(free_lunch = ifelse(free_lunch %in% na_symbols, NA, free_lunch)) %>% 
+  mutate(reduced_lunch = ifelse(reduced_lunch %in% na_symbols, NA, reduced_lunch))
+
+
+
+
+### PRIVATE SCHOOL DATA
+
+# Import data
+# Fixed some of the varialbes that came through weirdly.  
+### Honestly, wrote this code in January; didn't fully document how I came to this conclusion.
+# Cleaned names
+
+all_pvt = read_csv("data/nces_private_md.csv",
+                   col_types = cols(
+                     PSS_PHONE = col_character(),
+                     PSS_LIBRARY = col_factor()))
+
+all_pvt = clean_names(all_pvt)
+```
+
+## Data Cleaning
+
+The original data sources are quite messy and need several steps of cleaning and manipulation to make them ready for analysis and for merging.
+
+### Coding Grade Bands
+
+The first cleaning task was to re-code each school's grade-level data into categorical grade bands:
+
+-   ES
+-   ES/MS
+-   MS
+-   MS/HS
+-   HS
+-   All Grades
+-   Ungraded
+
+*The definitions for the grade bands is in the supporting Word Doc data log. This document provides consistent decisions for schools that weirdly span the grade bands. The code below is structured to apply those rules.*
+
+```{r NCES grade levels, include = FALSE}
+
+# Clean up the Grade Band data in each file separately
+
+# Public Schools dataset has a field for Lowest Grade and Highest Grade
+# We use those to code into grade bands
+
+### I picked up the "case_when" code from google searching as a way to replicate my usual nested IF functions (in Excel).  
+
+### If there's a cleaner way to do this, would love to learn.
+
+all_public = all_public %>% 
+  mutate(low_grade = 
+           case_when(
+             low_grade == "PK" ~ "KG",
+              TRUE ~ as.character(low_grade))) %>% 
+  mutate(grade_band = 
+            case_when(
+      high_grade == "KG" | high_grade == "01" | high_grade == "02" | high_grade == "03" | high_grade == "04" | high_grade == "05" | high_grade == "06" ~ "ES",
+            low_grade == "09" | low_grade == "10" | low_grade == "11" | low_grade == "12" ~ "HS",
+      low_grade == "KG" & high_grade == "07" ~ "ES/MS",
+      low_grade == "KG" & high_grade == "08" ~ "ES/MS",
+      low_grade == '05' & high_grade == '08' ~ "MS",
+      low_grade == "06" & high_grade == "08" ~ "MS",
+      low_grade == '07' & high_grade == '08' ~ "MS",
+      low_grade == '06' & high_grade == '07' ~ "MS",
+      low_grade == '03' & high_grade == '08' ~ "ES/MS",
+      low_grade == '04' & high_grade == '08' ~ "MS",
+      low_grade == '07' & high_grade == '09' ~ "MS/HS",
+      low_grade == '07' & high_grade == '10' ~ "MS/HS",
+      low_grade == '06' & high_grade == '12' ~ "MS/HS",
+      low_grade == '07' & high_grade == '12' ~ "MS/HS",
+      low_grade == '08' & high_grade == '12' ~ "HS",
+      low_grade == "UG" ~ "UG",
+      TRUE ~ "All Grades"))
+
+
+# Private Schools dataset presents low and high grade columns as AGES.  (Because, of course it does.)
+# There's a table in the Word doc data lot that explains the groupings, in which I've already convered ages to grades and made rules.  
+# This coding should get to the final grade bands out of the age range data.
+
+all_pvt = all_pvt %>% 
+  mutate(grade_band = 
+            case_when(
+              hi_grade < 12 & lo_grade > 1 ~ "ES",
+              lo_grade > 12 ~ "HS",
+              lo_grade < 9 & hi_grade == 12 ~ "ES/MS",
+              lo_grade < 9 & hi_grade == 13 ~ "ES/MS",
+              hi_grade > 13 & lo_grade == 10 ~ "MS/HS",
+              hi_grade > 13 & lo_grade == 11 ~ "MS/HS",
+              hi_grade > 13 & lo_grade == 12 ~ "MS/HS",
+              hi_grade == 12 & lo_grade == 9 ~ "MS",
+              hi_grade == 12 & lo_grade == 10 ~ "MS",
+              hi_grade == 12 & lo_grade == 11 ~ "MS",
+              hi_grade == 13 & lo_grade == 9 ~ "MS",
+              hi_grade == 13 & lo_grade == 10 ~ "MS",
+              hi_grade == 13 & lo_grade == 11 ~ "MS",
+              hi_grade == 13 & lo_grade == 12 ~ "MS",
+              lo_grade == 1 ~ "UG",
+              TRUE ~ "All Grades"))
+              
+```
+
+### Cleaning Other Variables
+
+Each data set is appended with a new variable indicating whether the school is public or private.
+
+**Public Schools:**
+
+-   Specialized public school types (magnet, charter) are currently coded each as their own yes/no variable. These are mutually exclusive categories, so we will merge them into a single variable of "School Type" (school_type_detail) with three options: Magnet, Charter, and Public (where "Public" means non-magnet, non-charter public school).
+
+-   The variable for Title I status is, essentially, blank to indicate "No." After cleaning symbols in the data set (footnotes in a web version, essentially), we transform NA data points into "No".
+
+-   Data on FARM metrics are raw numbers in separate variables. We will compute a standardized ratio representing Percent of (all enrolled) Students Eligible for FARM (free or reduced meals).
+
+*Note: Title I and FARM are the only available metrics of diversity in public school data. Racial composition is not reported by NCES at a school-by-school level (only at a district level).*
+
+**Private Schools:**
+
+-   Private schools report racial/ethnicity data of student body. From this, we compute a Percentage of Non-White Students as an aggregated measure.
+
+*Note: This is the only metric of "diversity" in the private school data. It's not remotely equivalent to Title I or FARM, but it is the metric available.*
+
+```{r NCES other cleaning, include = FALSE}
+
+# First we append each dataset with a new variable of its source (public, private)
+# We create a new variable that distinguishes the type of public school - regular public, charter, or magnet.
+
+all_public = all_public %>% 
+  mutate(school_type = "public") %>% 
+  mutate(school_type_detail = case_when(
+    magnet == "Yes" ~ "magnet",
+    charter == "Yes" ~ "charter",
+    TRUE ~ "public"))
+  
+all_pvt = all_pvt %>% 
+  mutate(school_type = "private") %>% 
+  mutate(school_type_detail = "private")
+
+
+# We fix the way the Title I data appears, so that NAs are changed to "No" in public schools
+
+# We calculate the "SES / diversity" indicators - FARM, title 1, percentage non-white
+
+#all_public = all_public %>% 
+#  mutate(school_type = "public") %>%
+#  mutate(title_i_school = case_when(title_i_school == "?" ~ NA)) %>% 
+#  mutate(title_i_school = replace_na(title_i_school, "No")) %>% 
+#  mutate(farm_pct = (free_lunch + reduced_lunch)/students)
+  
+all_pvt = all_pvt %>% 
+  rowwise() %>% 
+  mutate(pvt_pct_nonwhite = sum(pss_indian_pct, pss_hisp_pct, pss_black_pct, pss_pacisl_pct, pss_twomore_pct))
+
+```
+
+### Preparing & Merging into All Schools Data File
+
+**Data We Have in Both Data Sets:**
+
+-   Master School ID (NCES or PSS)
+
+-   School Name
+
+-   School Address
+
+-   School City
+
+-   School ZIP5
+
+-   School Phone
+
+-   School County Name
+
+-   Locale_Code
+
+    -   **TO DO: Translate (possibly reduce) via external reference set from NCES**
+
+-   Enrollment
+
+-   Teachers (FTEs)
+
+-   Grade Band
+
+**Public Districts also have**
+
+-   State School ID
+-   NCES District ID
+-   District Name
+-   Charter Y/N
+-   Magnet Y/N
+-   Title 1 Y/N
+-   Free Lunch
+-   Reduced Lunch
+-   FARM Percentage
+
+**Private Districts also have**
+
+-   Percentages by racial identity
+
+```{r NCES merging, include = FALSE}
+
+# Create new dataframes with renamed columns to make the merge easier.
+
+all_public = all_public %>% 
+  rename(school_id = nces_school_id,
+         name = school_name,
+         county = county_name,
+         enrollment = students,
+         teacher_fte = teachers,
+         address = street_address)
+
+all_pvt = all_pvt %>% 
+  rename(school_id = pss_school_id,
+         name = pss_inst,
+         address = pss_address,
+         city = pss_city,
+         state = pss_stabb,
+         zip = pss_zip5,
+         county = pss_county_name,
+         enrollment = pss_enroll_t,
+         teacher_fte = pss_fte_teach,
+         locale_code = pss_locale,
+         phone = pss_phone)
+
+all_schools = merge(all_public, all_pvt, all = TRUE)
+```
+
+### Post-Merge Cleaning
+
+With everything merged, there is a little bit more cleaning up of the master data file (all_schools) to do.
+
+-   Fixing the formatting of county names between the two files. Removing the word "County" from the private set. And changing everything to all-uppercase.
+
+> **Code Help:** I would prefer to have the names in Title Case, but didn't know the code for transforming ALL UPPERCASE to Title Case. (I only found examples for upper and lower.) So, I went with all caps.
+>
+> Also these steps aren't running due to the issue with the character (see above).
+
+-   Create a new data set that is just of Key Data we care about and organized in a usable fashion.
+
+-   Export Key Data file to excel/csv in order to do visualizations outside of R for January report.
+
+```{r NCES key data}
+
+# Cleaning on the master data set.  
+
+all_schools = all_schools %>% 
+  mutate(county = str_remove_all(county, "County")) %>% 
+  mutate(county = toupper(county)) %>% 
+  mutate(county = str_trim(county, side = "right"))
+
+# Create a new, smaller dataset that has just the data we might want to analyze / visualize.
+
+### TEMPORARY CODE --- DELETE WHEN ERROR IS FIXED
+### Because of data problem above, I commented out the variables that aren't working.
+
+key_data_all = all_schools %>% 
+  select(school_id,
+         name,
+         school_type,
+         school_type_detail,
+         grade_band,
+         county,
+         locale_code,
+#         title_i_school,
+#         farm_pct,
+         pvt_pct_nonwhite,
+         enrollment,
+         teacher_fte,
+#         free_lunch,
+#         reduced_lunch
+          )
+
+
+# Output for excel-based visualization
+
+write.csv(key_data_all, "outputs/All MD Schools Data.csv")
+```
+
+## Descriptive Statistics
+
+### All Maryland Schools
+
+Below are frequency tables summarizing the data. These can also be used to compare to outputs from Excel-based visualizations to double-check and spot possible errors in data files, outputs, etc.
+
+#### Public and Private
+
+```{r tables all schools}
+key_data_all %>% 
+  tabyl(school_type)
+
+key_data_all %>% 
+  tabyl(school_type_detail)
+```
+
+#### By County
+
+```{r tables all by county}
+key_data_all %>% 
+  tabyl(county)
+
+key_data_all %>% 
+  tabyl(county, school_type) %>% 
+  adorn_totals(where = c("row", "col"))
+```
+
+#### By Locale Type
+
+> **Code Note**: Still not sure how to update the data file with the definitions of the Locale Codes.
+>
+> We have a table with the meaning of each Locale Code, but not sure how to use R to transform the code into the words.
+
+```{r tables all by locale}
+key_data_all %>% 
+  tabyl(locale_code)
+
+key_data_all %>% 
+  tabyl(locale_code, school_type) %>% 
+  adorn_totals(where = c("row", "col"))
+```
+
+#### By Grade Band
+
+> **Code Note**: I don't know how to order tables with text-based options to put them in the proper sequence (not alpha).
+
+```{r tables all by grade}
+key_data_all %>% 
+  tabyl(grade_band)
+
+key_data_all %>% 
+  tabyl(grade_band, school_type) %>% 
+  adorn_totals(where = c("row", "col"))
+```
+
+#### By SES or Racial Diversity Measures
+
+The measures are different for public and private schools. For public schools, we have:
+
+-   Percentage that are designated Title I
+-   Several descriptives of the FARM eligibility. A histogram of the data may ultimately be better.
+-   Several descriptives of the percentages of non-white students at private schools/
+
+```{r tables all by diversity, eval = FALSE}
+
+#### CODED NOT TO RUN BECAUSE THE VARIABLE ISN'T WORKING; SEE ABOVE
+
+key_data_all %>% 
+  drop_na(title_i_school) %>% 
+  tabyl(title_i_school)
+
+key_data_all %>% 
+  drop_na(farm_pct) %>% 
+  summarize("Average % Students Eligible for FARM" = mean(farm_pct),
+            "Median % Students Eligible for FARM" = median(farm_pct),
+            "Percent of Schools w/ >50% FARM eligible students" = (sum(farm_pct > .50)/n()),
+            "Percent of Schools w/ <25% FARM eligible students" = (sum(farm_pct < .25)/n()),
+            "Percent of Schools w/ >75% FARM eligible students" = (sum(farm_pct > .75)/n()))
+
+key_data_all %>% 
+  drop_na(pvt_pct_nonwhite) %>% 
+  summarize("Average % Enrollment of Non-White Students" = mean(pvt_pct_nonwhite),
+            "Median % Enrollment of Non-White Students" = median(pvt_pct_nonwhite),
+            "Percent of Schools w/ >50% enrollment is Non-White Students" = (sum(pvt_pct_nonwhite > 50)/n()),
+            "Percent of Schools w/ >25% enrollment is Non-White Students" = (sum(pvt_pct_nonwhite > 25)/n()))
+
+```
+
+### All Public Schools
+
+MAEOE asked for data to be presented separately between public and private schools. This section contains the same descriptive tables, but separated by public/private.
+
+#### By County
+
+```{r tables all public by county}
+all_public %>% 
+  tabyl(county)
+
+all_public %>% 
+  tabyl(county, school_type) %>% 
+  adorn_totals(where = c("row", "col"))
+```
+
+#### By Locale Type
+
+```{r tables all public by locale}
+all_public %>% 
+  tabyl(locale_code)
+
+all_public %>% 
+  tabyl(locale_code, school_type) %>% 
+  adorn_totals(where = c("row", "col"))
+```
+
+#### By Grade Band
+
+```{r tables all public by grade}
+all_public %>% 
+  tabyl(grade_band)
+
+all_public %>% 
+  tabyl(grade_band, school_type) %>% 
+  adorn_totals(where = c("row", "col"))
+```
+
+### All Private Schools
+
+MAEOE asked for data to be presented seprately between public and private schools.
+
+#### By County
+
+```{r tables all private by county}
+all_pvt %>% 
+  tabyl(county)
+
+all_pvt %>% 
+  tabyl(county, school_type) %>% 
+  adorn_totals(where = c("row", "col"))
+```
+
+#### By Locale Type
+
+```{r tables all private by locale}
+all_pvt %>% 
+  tabyl(locale_code)
+
+all_pvt %>% 
+  tabyl(locale_code, school_type) %>% 
+  adorn_totals(where = c("row", "col"))
+```
+
+#### By Grade Band
+
+```{r tables all private by grade}
+all_pvt %>% 
+  tabyl(grade_band)
+
+all_pvt %>% 
+  tabyl(grade_band, school_type) %>% 
+  adorn_totals(where = c("row", "col"))
+```

@@ -1,0 +1,13 @@
+pss_locale,urban_centric_locale,locale_type,definition
+11,City large,City: Large,"Territory inside an urbanized area and inside a principal city with population of 250,000 or more."
+12,City midsize,City: Midsize,"Territory inside an urbanized area and inside a principal city with population less than 250,000 and greater than or equal to 100,000."
+13,City small,City: Small,"Territory inside an urbanized area and inside a principal city with population less than 100,000."
+21,Suburb large,Suburb: Large,"Territory outside a principal city and inside an urbanized area with population of 250,000 or more."
+22,Suburb midsize,Suburb: Midsize,"Territory outside a principal city and inside an urbanized area with population less than 250,000 and greater than or equal to 100,000."
+23,Suburb small,Suburb: Small,"Territory outside a principal city and inside an urbanized area with population less than 100,000."
+31,Town fringe,Town: Fringe,Territory inside an urban cluster that is less than or equal to 10 miles from an urbanized area.
+32,Town distant,Town: Distant,Territory inside an urban cluster that is more than 10 miles and less than or equal to 35 miles from an urbanized area.
+33,Town remote,Town: Remote,Territory inside an urban cluster that is more than 35 miles of an urbanized area.
+41,Rural fringe,Rural: Fringe,"Census-defined rural territory that is less than or equal to 5 miles from an urbanized area, as well as rural territory that is less than or equal to 2.5 miles from an urban cluster."
+42,Rural distant,Rural: Distant,"Census-defined rural territory that is more than 5 miles but less than or equal to 25 miles from an urbanized area, as well as rural territory that is more than 2.5 miles but less than or equal to 10 miles from an urban cluster."
+43,Rural remote,Rural: Remote,Census-defined rural territory that is more than 25 miles from an urbanized area and is also more than 10 miles from an urban cluster.
