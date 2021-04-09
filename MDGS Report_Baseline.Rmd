@@ -1,6 +1,8 @@
 ---
 title: "MDGS 2021: Baseline Summary Report"
 output: bookdown::html_document2
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -8,7 +10,6 @@ knitr::opts_chunk$set(echo = FALSE, include = TRUE)
 ```
 
 ```{r packages, include = FALSE}
-library(readr)
 library(tidyverse)
 library(skimr)
 library(knitr)
@@ -18,7 +19,7 @@ library(ggplot2)
 
 ```
 
-```{r import data, include = FALSE}
+```{r import_data, include = FALSE}
 
 # Import the cleaned data from data folder.
 # These files were cleaned via the code in the MDGS_Analysis_Info RMD doc
@@ -26,7 +27,7 @@ library(ggplot2)
 # All Schools and Public Schools still need to be filtered
 # Remove any schools (~7 in this set) that were coded as "Closed"
 
-all_schools = read_csv("data/all_schools_cleaned.csv") %>% 
+all_schools <- read_csv("data/all_schools_cleaned.csv") %>% 
   filter(school_status != "Closed")
 
 ```
@@ -61,22 +62,22 @@ According to NCES data, there are 1,982 schools in Maryland. Of these, 72% of sc
 
 **Distribution of School Types in Maryland (n=1980)**
 
-```{r school types stacked bar chart}
+```{r school_types_stacked_bar_chart}
 
 # Create summary table of the data
 
-school_types = all_schools %>% 
+school_types <- all_schools %>% 
   group_by(school_type) %>% 
-  summarize(Percentage = round((n()/1980)*100,0))
+  summarize(percentage = round((n()/1980)*100,0))
 
 
 ### I'd prefer to do this as a stacked bar -- since it's a proportion of 100%
 
 ggplot(data = school_types,
-       mapping = aes(x = school_type,
-                     y = Percentage)) +
-  geom_col() +
-  coord_flip()
+       mapping = aes(y = "School Type",
+                     x = percentage,
+                     fill = school_type)) +
+  geom_col()
 
 ### STILL TO LEARNS / TO DOS
 # Naming axis titles (or eliminating)
@@ -89,20 +90,19 @@ ggplot(data = school_types,
 
 **Distribution of Types of Public Schools in Maryland (n=1418)**
 
-```{r public sub-types bar chart}
+```{r public_sub_types_bar_chart}
 
 # Create summary table of the data
 
-public_subtypes = all_schools %>% 
+public_subtypes <- all_schools %>% 
   filter(school_type == "public") %>% 
   count(school_type_detail)
 
 
 ggplot(data = public_subtypes,
-       mapping = aes(x = school_type_detail,
-                     y = n)) +
-  geom_col() +
-  coord_flip()
+       mapping = aes(y = school_type_detail,
+                     x = n)) +
+  geom_col()
 
 ### STILL TO LEARNS / TO DOS
 # Naming axis titles (or eliminating)
@@ -123,33 +123,33 @@ The remainder of schools are in the higher grade levels -- middle school, high s
 
 **Distribution of Schools by Grade Level (Public Schools, n=1418)**
 
-```{r grade bands public}
+```{r grade_band_public}
 
-public_grades = all_schools %>% 
+public_grades <- all_schools %>% 
   filter(school_type == "public") %>% 
   group_by(grade_band) %>% 
-  summarize(Percentage = round((n()/1418)*100,0))
+  summarize(percentage = round((n()/1418)*100,0))
 
 
 ggplot(data = public_grades,
        mapping = aes(x = grade_band,
-                     y = Percentage)) +
+                     y = percentage)) +
   geom_col()
 ```
 
 **Distribution of Schools by Grade Level (Private Schools, n=562)**\
 
-```{r grade bands private}
+```{r grade_bands_private}
 
-pvt_grades = all_schools %>% 
+pvt_grades <- all_schools %>% 
   filter(school_type == "private") %>% 
   group_by(grade_band) %>% 
-  summarize(Percentage = round((n()/562)*100,0))
+  summarize(percentage = round((n()/562)*100,0))
 
 
 ggplot(data = pvt_grades,
        mapping = aes(x = grade_band,
-                     y = Percentage)) +
+                     y = percentage)) +
   geom_col()
 ```
 
@@ -157,19 +157,19 @@ ggplot(data = pvt_grades,
 
 **Distribution of Schools by Locale Type (Public Schools) (n=1418)**
 
-```{r locale type public}
+```{r locale_type_public}
 
 # Create summary table of the data
 
-public_locales = all_schools %>% 
+public_locales <- all_schools %>% 
   filter(school_type == "public") %>% 
   group_by(locale_label) %>% 
-  summarize(Percentage = round((n()/1418)*100,0))
+  summarize(percentage = round((n()/1418)*100,0))
 
 
 ggplot(data = public_locales,
        mapping = aes(x = locale_label,
-                     y = Percentage)) +
+                     y = percentage)) +
   geom_col() +
   coord_flip()
 
@@ -186,25 +186,25 @@ Condensed Version
 
 > **Code Help:** I'd like to condense down these groups to Urban, Suburban, Rural, Town. I'm having a block on making that work in the summary table. I do know locale_label is a factor, if that matters (that's how it imported from the Urban Institute set..
 
-```{r locale type cond public}
+```{r locale_type_cond_public}
 
 # Create summary table of the data
 
-public_locales2 = all_schools %>% 
+public_locales_2 <- all_schools %>% 
   mutate(locale_label_cond = 
-           case_when(locale_label %in% c("City large", "City small") ~ "Urban"
-                     locale_label %in% c("Rural distant", ),
-                     TRUE ~ NA) %>% 
+           case_when(locale_label %in% c("City large", "City small") ~ "Urban",
+                     locale_label %in% c("Rural distant", "Rural fringe") ~ "Rural",
+                     TRUE ~ NA_character_)) %>% 
   filter(school_type == "public") %>% 
   group_by(locale_label_cond) %>% 
-  summarize(Percentage = round((n()/1418)*100,0))
+  summarize(percentage = round((n()/1418)*100,0))
 
 
-ggplot(data = public_locales,
-       mapping = aes(x = locale_label,
-                     y = Percentage)) +
-  geom_col() +
-  coord_flip()
+ggplot(data = public_locales_2,
+       mapping = aes(y = "Local type",
+                     x = percentage,
+                     fill = locale_label_cond)) +
+  geom_col()
 
 ### STILL TO LEARNS / TO DOS
 # Naming axis titles (or eliminating)
