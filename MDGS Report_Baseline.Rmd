@@ -16,6 +16,8 @@ library(knitr)
 library(janitor)
 library(flextable)
 library(ggplot2)
+library(hrbrthemes)
+library(ggthemes)
 
 ```
 
@@ -54,13 +56,13 @@ The first stage of analysis was to gather, wrangle, and descriptively analyze th
 
 According to NCES data, there are 1,982 schools in Maryland. Of these, 72% of schools are public schools. Within the public schools, about 10% are either magnet or charter schools; 65% of charter schools are in urban areas, while 70% of magnet schools are located in suburban areas.
 
-> **Code Help:** I couldn't figure out how to cleanly get a percentage using the summarize function. (I could do it in tabyl(), but that didn't seem to be the right fit here.
->
-> Formatting it with the % sign. (Or if that's something you format in the graphic?)
->
-> Getting the total N to divide the n() count by.
+> **\*Graph Help:** My data labels aren't matching the underlying data. The 28% is on the 72% bar, and vice versa. What did I do wrong?
 
-**Distribution of School Types in Maryland (n=1980)**
+> **\*Data Formatting Help:** I can't figure out how to cleanly get a percentage using the summarize function. My issues:
+>
+> 1)  getting it to automatically find the total N to divide the n() count by -- it feels not reproducible that I manually entered the population size.
+>
+> 2)  formatting the data as a % with the % sign - instead of a whole number.
 
 ```{r school_types_stacked_bar_chart}
 
@@ -68,27 +70,33 @@ According to NCES data, there are 1,982 schools in Maryland. Of these, 72% of sc
 
 school_types <- all_schools %>% 
   group_by(school_type) %>% 
-  summarize(percentage = round((n()/1980)*100,0))
+  summarize(percentage = round((n()/1980)*100,0)) %>% 
+  mutate(school_type = str_to_title(school_type))
 
 
-### I'd prefer to do this as a stacked bar -- since it's a proportion of 100%
+# Stacked Bar Chart of Private / Public
 
 ggplot(data = school_types,
-       mapping = aes(y = "School Type",
-                     x = percentage,
+       mapping = aes(x = percentage,
+                     y = "School Type",
                      fill = school_type)) +
-  geom_col()
+  geom_col(show.legend = FALSE) +
+  geom_text(aes(label = percentage),
+            color = "white",
+            hjust = 0) +
+  geom_text(aes(label = school_type),
+            color = "white",
+            hjust = -.5) +
+  scale_fill_brewer(type = "qual",
+                    palette = "Set1") +
+  labs(title = "School Types in Maryland",
+       subtitle = "Breakdown of all individual schools in Maryland between public and private (n=1980).") +
+  theme_void()
 
-### STILL TO LEARNS / TO DOS
-# Naming axis titles (or eliminating)
-# Formatting data labels
-# Adding data values in bars
-# color scheme
-# eliminating background plot
-# Add title / explanation (instead of doing it in text)
+
 ```
 
-**Distribution of Types of Public Schools in Maryland (n=1418)**
+> **\*Graph Help:** I like the "void" theme for stripping out all the graphic noise. But then I couldn't figure out how to add back in the labels I want on the Y axis: the categories - Public, Magnet, Charter.
 
 ```{r public_sub_types_bar_chart}
 
@@ -102,14 +110,14 @@ public_subtypes <- all_schools %>%
 ggplot(data = public_subtypes,
        mapping = aes(y = school_type_detail,
                      x = n)) +
-  geom_col()
-
-### STILL TO LEARNS / TO DOS
-# Naming axis titles (or eliminating)
-# Formatting data labels
-# Adding data values in bars
-# color scheme
-# eliminating background plot
+  geom_col(fill = "#83bc30") +
+  geom_text(aes(label = n),
+                color = "white",
+                hjust = 1.2) +
+  labs(title = "Types of Public Schools in Maryland",
+       subtitle = "Distribution of public schools and those classified as magnet or charter schools (n=1418)") +
+  theme_void()
+  
 
 ```
 
@@ -120,8 +128,6 @@ Elementary schools are, by far, the most common type of school in Maryland. Near
 The remainder of schools are in the higher grade levels -- middle school, high school, or a spanning across all grade bands. Total enrollment ranged from a very small number of students (private schools) to 3,196 students (a suburban magnet high school). Schools for older students tend to serve more students per building.
 
 > **Code Help:** In order to get these to organize by logical grade levels, ES, ES/MS, MS, HS, etc. -- I think I need to get this variable turned into a factor. But I don't know how to do that.
-
-**Distribution of Schools by Grade Level (Public Schools, n=1418)**
 
 ```{r grade_band_public}
 
@@ -134,10 +140,22 @@ public_grades <- all_schools %>%
 ggplot(data = public_grades,
        mapping = aes(x = grade_band,
                      y = percentage)) +
-  geom_col()
-```
+  geom_col(fill = "#83bc30") +
+  geom_text(aes(label = percentage),
+                color = "white",
+                vjust = 1.1) +
+  scale_y_continuous(limits = c(0, 60),
+                     breaks = seq(0, 60, by=60)) +
+  labs(title = "Public Schools by Grade Level (n=1418)",
+       subtitle = "Distribution of public schools within grade bands (in percentages)",
+       x = "",
+       y = "Percentage of all Public Schools") +
+#   theme_minimal()
+  #theme_void()
+  theme_economist_white()
 
-**Distribution of Schools by Grade Level (Private Schools, n=562)**\
+
+```
 
 ```{r grade_bands_private}
 
@@ -150,66 +168,91 @@ pvt_grades <- all_schools %>%
 ggplot(data = pvt_grades,
        mapping = aes(x = grade_band,
                      y = percentage)) +
-  geom_col()
+  geom_col(fill = "#83bc30") +
+  geom_text(aes(label = percentage),
+                color = "white",
+                vjust = 1.1) +
+  scale_y_continuous(limits = c(0, 60),
+                     breaks = seq(0, 60, by=60)) +
+  labs(title = "Private Schools by Grade Level (n=562)",
+       subtitle = "Distribution of private schools within grade bands (in percentages)",
+       x = "",
+       y = "Percentage of all Private Schools") +
+#   theme_minimal()
+  #theme_void()
+  theme_economist_white()
 ```
 
 ## Locale Type
 
-**Distribution of Schools by Locale Type (Public Schools) (n=1418)**
+Most schools in Maryland are located in areas classified as suburbs by the NCES. Urban and rural schools are the next most common locales for schools. There are virtually no differences between the distribution of locales for public and private schools.
 
 ```{r locale_type_public}
 
 # Create summary table of the data
 
 public_locales <- all_schools %>% 
-  filter(school_type == "public") %>% 
-  group_by(locale_label) %>% 
-  summarize(percentage = round((n()/1418)*100,0))
-
-
-ggplot(data = public_locales,
-       mapping = aes(x = locale_label,
-                     y = percentage)) +
-  geom_col() +
-  coord_flip()
-
-### STILL TO LEARNS / TO DOS
-# Naming axis titles (or eliminating)
-# Formatting data labels
-# Adding data values in bars
-# color scheme
-# eliminating background plot
-
-```
-
-Condensed Version
-
-> **Code Help:** I'd like to condense down these groups to Urban, Suburban, Rural, Town. I'm having a block on making that work in the summary table. I do know locale_label is a factor, if that matters (that's how it imported from the Urban Institute set..
-
-```{r locale_type_cond_public}
-
-# Create summary table of the data
-
-public_locales_2 <- all_schools %>% 
   mutate(locale_label_cond = 
            case_when(locale_label %in% c("City large", "City small") ~ "Urban",
                      locale_label %in% c("Rural distant", "Rural fringe") ~ "Rural",
+                     locale_label %in% c("Suburb large", "Suburb midsize", "Suburb small") ~ "Suburb",
+                     locale_label %in% c("Town fringe", "Town distant") ~ "Town",
                      TRUE ~ NA_character_)) %>% 
   filter(school_type == "public") %>% 
   group_by(locale_label_cond) %>% 
   summarize(percentage = round((n()/1418)*100,0))
 
 
-ggplot(data = public_locales_2,
-       mapping = aes(y = "Local type",
-                     x = percentage,
-                     fill = locale_label_cond)) +
-  geom_col()
+ggplot(data = public_locales,
+       mapping = aes(y = locale_label_cond,
+                     x = percentage)) +
+    geom_col(fill = "#83bc30") +
+  geom_text(aes(label = percentage),
+                color = "white",
+                hjust = 1.5) +
+  scale_x_continuous(limits = c(0, 60),
+                     breaks = seq(0, 60, by=60)) +
+  labs(title = "Public Schools by Locale (n=1418)",
+       subtitle = "Distribution of public schools by locale (in percentages)",
+       x = "",
+       y = "Percentage of all Public Schools") +
+#   theme_minimal()
+  #theme_void()
+  theme_economist_white()
 
-### STILL TO LEARNS / TO DOS
-# Naming axis titles (or eliminating)
-# Formatting data labels
-# Adding data values in bars
-# color scheme
-# eliminating background plot
+```
+
+```{r locale_type_pvt}
+
+# Create summary table of the data
+
+pvt_locales <- all_schools %>% 
+  mutate(locale_label_cond = 
+           case_when(locale_label %in% c("City large", "City small") ~ "Urban",
+                     locale_label %in% c("Rural distant", "Rural fringe") ~ "Rural",
+                     locale_label %in% c("Suburb large", "Suburb midsize", "Suburb small") ~ "Suburb",
+                     locale_label %in% c("Town fringe", "Town distant") ~ "Town",
+                     TRUE ~ NA_character_)) %>% 
+  filter(school_type == "private") %>% 
+  group_by(locale_label_cond) %>% 
+  summarize(percentage = round((n()/562)*100,0))
+
+
+ggplot(data = pvt_locales,
+       mapping = aes(y = locale_label_cond,
+                     x = percentage)) +
+    geom_col(fill = "#83bc30") +
+  geom_text(aes(label = percentage),
+                color = "white",
+                hjust = 1.5) +
+  scale_x_continuous(limits = c(0, 60),
+                     breaks = seq(0, 60, by=60)) +
+  labs(title = "Private Schools by Locale (n=562)",
+       subtitle = "Distribution of private schools by locale (in percentages)",
+       x = "",
+       y = "Percentage of all Private Schools") +
+#   theme_minimal()
+  #theme_void()
+  theme_economist_white()
+
 ```
