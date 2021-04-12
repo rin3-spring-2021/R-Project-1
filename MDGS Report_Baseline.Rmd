@@ -68,16 +68,26 @@ According to NCES data, there are 1,982 schools in Maryland. Of these, 72% of sc
 
 school_types <- all_schools %>% 
   group_by(school_type) %>% 
-  summarize(percentage = round((n()/1980)*100,0))
+  summarize(percentage = round((n()/1980)*100,0)) %>% 
+  mutate(school_type = str_to_title(school_type))
 
 
-### I'd prefer to do this as a stacked bar -- since it's a proportion of 100%
+# Stacked Bar Chart of Private / Public
 
 ggplot(data = school_types,
        mapping = aes(y = "School Type",
                      x = percentage,
                      fill = school_type)) +
-  geom_col()
+  geom_col(show.legend = FALSE) +
+  geom_text(label = school_types$percentage,
+            hjust = -1.5,
+            color = "white") +
+  labs(title = "School Types in Maryland",
+       subtitle = "Breakdown of all Maryland schools between public and private (n=1980)") +
+  theme_void()
+
+
+### HOw do I get a percentage
 
 ### STILL TO LEARNS / TO DOS
 # Naming axis titles (or eliminating)
